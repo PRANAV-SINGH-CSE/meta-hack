@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "email-triage-env"
+version = "1.1.0"
+description = "Real-world email triage environment implementing the OpenEnv spec"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+keywords = ["openenv", "reinforcement-learning", "nlp", "email", "agent"]
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.10",
+    "httpx>=0.28",
+    "openai>=1.57",
+    "pyyaml>=6.0",
+    "python-multipart>=0.0.20",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.28"]
+
+[project.scripts]
+email-triage-serve = "app:main"
+email-triage-validate = "validate:main"
+email-triage-demo = "demo_agent:main"
+email-triage-baseline = "baseline:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]

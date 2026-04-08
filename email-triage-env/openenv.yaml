@@ -1,0 +1,131 @@
+name: email-triage-env
+version: "1.0.0"
+description: >
+  A real-world email triage environment where AI agents learn to classify,
+  prioritise, route, and respond to emails. Three tasks of increasing difficulty
+  provide a graded curriculum from binary spam detection through to full
+  professional triage with action-item extraction and reply drafting.
+
+author: OpenEnv Contributor
+tags:
+  - email
+  - nlp
+  - classification
+  - real-world
+  - triage
+  - openenv
+
+tasks:
+  - id: task1_spam
+    name: Spam vs. Not-Spam Classification
+    difficulty: easy
+    max_steps: 10
+    description: >
+      Classify each email as spam or not_spam.
+      Score: 1.0 for correct label, 0.0 for wrong.
+
+  - id: task2_routing
+    name: Priority & Department Routing
+    difficulty: medium
+    max_steps: 10
+    description: >
+      Assign a priority (low/medium/high/urgent) and route to a department
+      (sales/support/billing/hr/technical/general).
+      Score: 50% priority (partial credit for adjacent step) + 50% department.
+
+  - id: task3_full_triage
+    name: Full Email Triage
+    difficulty: hard
+    max_steps: 5
+    description: >
+      Complete triage: priority + department + extract action items +
+      draft a professional reply.
+      Score: 20% priority + 20% department + 35% action items + 25% reply draft.
+
+observation_space:
+  type: object
+  properties:
+    email:
+      type: object
+      properties:
+        id:             { type: string }
+        subject:        { type: string }
+        body:           { type: string }
+        sender:         { type: string }
+        sender_email:   { type: string }
+        timestamp:      { type: string, format: date-time }
+        thread_length:  { type: integer }
+    task_id:          { type: string }
+    task_description: { type: string }
+    step_number:      { type: integer }
+    total_steps:      { type: integer }
+    done:             { type: boolean }
+
+action_space:
+  type: object
+  properties:
+    spam_label:
+      type: string
+      enum: [spam, not_spam]
+      description: Used in task1_spam only
+    priority:
+      type: string
+      enum: [low, medium, high, urgent]
+      description: Used in task2_routing and task3_full_triage
+    department:
+      type: string
+      enum: [sales, support, billing, hr, technical, general]
+      description: Used in task2_routing and task3_full_triage
+    action_items:
+      type: array
+      items: { type: string }
+      description: Used in task3_full_triage — list of concrete actions
+    reply_draft:
+      type: string
+      description: Used in task3_full_triage — professional email reply
+
+reward:
+  range: [0.0, 1.0]
+  type: dense
+  description: >
+    All tasks return per-step rewards between 0.0 and 1.0.
+    Partial credit is awarded for near-correct priority (adjacent step = 0.5)
+    and for partial keyword coverage in action items and reply drafts.
+    Null/empty actions incur a 0.3 penalty.
+
+api:
+  reset:
+    method: POST
+    path: /reset
+    body: { task_id: string }
+    returns: Observation
+  step:
+    method: POST
+    path: /step
+    body: Action
+    returns: StepResult
+  state:
+    method: GET
+    path: /state
+    returns: EnvironmentState
+  tasks:
+    method: GET
+    path: /tasks
+    returns: dict[task_id, TaskMeta]
+
+endpoints:
+  hf_space: https://huggingface.co/spaces/openenv/email-triage-env
+  api_docs: /docs
+
+baseline_scores:
+  model: gpt-4o-mini
+  task1_spam:
+    mean_reward: 0.9000
+    note: Near-perfect spam detection; occasional phishing misclassification
+  task2_routing:
+    mean_reward: 0.7250
+    note: Good department routing; priority off-by-one errors on medium/high boundary
+  task3_full_triage:
+    mean_reward: 0.6120
+    note: Action items partially complete; reply drafts adequate but miss edge-case keywords
+  overall_mean_reward: 0.7457
